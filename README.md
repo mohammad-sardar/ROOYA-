@@ -33,3 +33,10 @@ The **ROO'YA** project bridges the gap between AI technology and daily accessibi
    ```bash
    git clone [https://github.com/yourusername/Rooya_Project.git](https://github.com/yourusername/Rooya_Project.git)
    pip install ultralytics flask opencv-python flask-cors pyttsx3
+---
+
+## ⚠️ IMPORTANT: Local Deployment
+> [!IMPORTANT]
+> **Privacy & Speed:** This system runs **ENTIRELY LOCAL**. It does not require an internet connection to process the camera feed or generate voice alerts. This ensures:
+> - **Zero Latency:** Immediate response essential for safety.
+> - **Privacy:** No data or video feed is ever uploaded to the cloud.
