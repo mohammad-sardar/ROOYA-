@@ -7,7 +7,9 @@
 ##  Project Demonstration
 The video below shows the **ROO'YA Interface** in action, demonstrating real-time detection and the automated voice alert system:
 
-![Project Demo](https://github.com/mohammad-sardar/ROOYA-/blob/main/assets/Screen%20Recording%202026-04-17%20175050.mp4)
+<video src="https://github.com/mohammad-sardar/ROOYA-/raw/main/assets/Screen%20Recording%202026-04-17%20175050.mp4" controls="controls" style="max-width: 100%;">
+  Your browser does not support the video tag.
+</video>
 ---
 
 ##  Project Overview
