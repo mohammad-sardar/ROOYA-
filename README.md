@@ -39,7 +39,10 @@ Assistive Vision AI is a state-of-the-art application designed to assist visuall
 - **Detected Object**: Marks any object detected in the camera feed with a red indicator.
 - **Hazard Under 2 Meters**: Indicates any hazard within a 2-meter range using a different color or icon for quick identification.
 - **Glass Overlay Telemetry**: Adds a glass overlay visualization on the detected objects, helping users see the depth of objects in the environment.
-### [Click here to Watch The First trial of the project](https://youtu.be/bhrlr6GUFLU)
+
+- ### Watch the Application in Action
+To see the application live and how it performs, click the link below to watch the demo video of the system working in real-time.
+### [Watch The First trial of the project](https://youtu.be/bhrlr6GUFLU)
 ### How to Use:
 1. **Set Up the Camera**: Ensure that your camera is connected and detected by the system. You can use the "Auto-detect Camera" option for ease of use.
 2. **Start the Detection**: Click on "Start Camera" to begin the real-time hazard monitoring.
@@ -47,6 +50,9 @@ Assistive Vision AI is a state-of-the-art application designed to assist visuall
 4. **Upload a Test Video**: If you want to test the system with a pre-recorded video, you can use the "Upload Test Video" option.
 5. **Train the Model**: If needed, upload your custom model through the "Training Hub" to tailor the system to specific environments or tasks.
 
-### Watch the Application in Action
-To see the application live and how it performs, click the link below to watch the demo video of the system working in real-time.
+---
+
+> [!IMPORTANT]
+> **Environment Note:** This project is currently configured and optimized for **Localhost execution**. 
+> Due to the complex architectural dependencies, large dataset handling, and integrated AI cleansing modules, the system is designed to run within a dedicated local development environment rather than a live web demo.
 
