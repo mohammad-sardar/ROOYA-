@@ -1,4 +1,4 @@
-# Assistive Vision AI
+# ROOYA (رؤية) AI
 
 Assistive Vision AI is a state-of-the-art application designed to assist visually impaired users by providing real-time object detection, hazard identification, and spoken alerts. The system utilizes advanced computer vision technology, powered by YOLOv8, to detect objects, estimate distances, and provide voice feedback to users about nearby hazards.
 
