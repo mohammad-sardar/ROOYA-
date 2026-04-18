@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assistive Vision AI</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-soft: rgba(15, 23, 42, 0.72);
+      --panel: rgba(15, 23, 42, 0.55);
+      --border: rgba(148, 163, 184, 0.18);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #8b5cf6;
+      --danger: #fb7185;
+      --success: #22c55e;
+      --shadow: 0 24px 70px rgba(2, 6, 23, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Segoe UI", "SF Pro Display", Tahoma, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: -20%;
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(90px);
+      opacity: 0.55;
+      animation: drift 18s ease-in-out infinite alternate;
+    }
+
+    body::before {
+      background:
+        radial-gradient(circle at 20% 25%, rgba(56, 189, 248, 0.35), transparent 28%),
+        radial-gradient(circle at 70% 40%, rgba(99, 102, 241, 0.28), transparent 30%),
+        radial-gradient(circle at 55% 75%, rgba(168, 85, 247, 0.24), transparent 25%);
+    }
+
+    body::after {
+      background:
+        radial-gradient(circle at 78% 22%, rgba(129, 140, 248, 0.22), transparent 25%),
+        radial-gradient(circle at 30% 70%, rgba(59, 130, 246, 0.25), transparent 25%),
+        radial-gradient(circle at 60% 60%, rgba(147, 51, 234, 0.2), transparent 30%);
+      animation-duration: 24s;
+    }
+
+    @keyframes drift {
+      from { transform: translate3d(-2%, -1%, 0) scale(1); }
+      to { transform: translate3d(2%, 2%, 0) scale(1.08); }
+    }
+
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 780px;
+      line-height: 1.6;
+    }
+
+    .status-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+      font-size: 0.95rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(320px, 0.95fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .glass {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.42), rgba(15, 23, 42, 0.7));
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .video-card { padding: 18px; }
+
+    .video-stage {
+      position: relative;
+      overflow: hidden;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.72));
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      min-height: 420px;
+      aspect-ratio: 16 / 9;
+    }
+
+    video, canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 22px;
+    }
+
+    #overlayCanvas { pointer-events: none; }
+
+    .stage-overlay {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      pointer-events: none;
+    }
+
+    .stage-chip {
+      background: rgba(2, 6, 23, 0.52);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      padding: 12px 14px;
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      min-width: 150px;
+    }
+
+    .card-title {
+      margin: 0 0 14px;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    button,
+    input[type="file"]::file-selector-button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+    }
+
+    button:hover,
+    input[type="file"]::file-selector-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.35);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, var(--accent), #2563eb);
+      color: white;
+    }
+
+    .secondary {
+      background: rgba(30, 41, 59, 0.82);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .sidebar { display: grid; gap: 18px; }
+    .panel { padding: 18px; }
+    .panel p, .panel label, .panel small { color: var(--muted); }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 1.35rem;
+      margin-top: 8px;
+    }
+
+    .hazard-list {
+      display: grid;
+      gap: 10px;
+      max-height: 300px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .hazard-item {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.56);
+      border: 1px solid rgba(251, 113, 133, 0.18);
+    }
+
+    .hazard-item strong {
+      color: #fda4af;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .training-box {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(2, 6, 23, 0.36);
+      border: 1px dashed rgba(148, 163, 184, 0.24);
+    }
+
+    .file-input {
+      width: 100%;
+      margin: 10px 0 12px;
+      color: var(--muted);
+    }
+
+    .mini-log {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid var(--border);
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .legend {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend i {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .muted { color: var(--muted); }
+
+    select {
+      width: 100%;
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: rgba(30, 41, 59, 0.82);
+      color: var(--text);
+      border: 1px solid var(--border);
+      outline: none;
+    }
+
+    .hidden-file-input {
+      display: none;
+    }
+
+    @media (max-width: 1080px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .app-shell { padding: 16px; }
+      .video-stage { min-height: 320px; }
+      .metric-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="hero">
+        <h1>Assistive Vision AI</h1>
+        <p>
+          A general intelligent assistant for visually impaired users. The system uses
+          YOLOv8 object detection, distance estimation, risk filtering, and spoken
+          alerts to identify nearby hazards in real time.
+        </p>
+      </div>
+      <div class="status-strip">
+        <div class="pill">Model: <span id="modelName">Loading...</span></div>
+        <div class="pill">Backend: <span id="backendStatus">Checking...</span></div>
+        <div class="pill">Audio: <span id="audioStatus">Ready</span></div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="glass video-card">
+        <h2 class="card-title">Live Neural Vision</h2>
+        <div class="video-stage">
+          <video id="cameraFeed" autoplay playsinline muted></video>
+          <canvas id="overlayCanvas"></canvas>
+          <div class="stage-overlay">
+            <div class="stage-chip">
+              <div class="muted">Current Mode</div>
+              <strong id="modeLabel">Camera Idle</strong>
+            </div>
+            <div class="stage-chip">
+              <div class="muted">Nearest Hazard</div>
+              <strong id="nearestHazard">None</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <select id="cameraSelect" class="secondary" aria-label="Camera source">
+            <option value="">Auto-detect camera</option>
+          </select>
+          <input id="videoInput" class="hidden-file-input" type="file" accept="video/*" aria-label="Upload test video" />
+          <button id="startBtn" class="primary">START CAMERA</button>
+          <button id="playVideoBtn" class="secondary">UPLODE TEST VIDEO</button>
+          <button id="stopBtn" class="secondary">STOP CAMERA</button>
+          <button id="speechBtn" class="secondary">MUTE SPOKEN ALERT</button>
+        </div>
+
+        <div class="legend">
+          <span><i style="background:#22c55e;"></i>Detected object</span>
+          <span><i style="background:#fb7185;"></i>Hazard under 2 meters</span>
+          <span><i style="background:#38bdf8;"></i>Glass overlay telemetry</span>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <section class="glass panel">
+          <h2 class="card-title">Performance Monitor</h2>
+          <div class="metric-grid">
+            <div class="metric"><span class="muted">FPS</span><strong id="fpsValue">0</strong></div>
+            <div class="metric"><span class="muted">Latency</span><strong id="latencyValue">0 ms</strong></div>
+            <div class="metric"><span class="muted">Detections</span><strong id="detectionCount">0</strong></div>
+            <div class="metric"><span class="muted">Hazards</span><strong id="hazardCount">0</strong></div>
+          </div>
+        </section>
+
+        <section class="glass panel">
+          <h2 class="card-title">Live Hazard Log</h2>
+          <div id="hazardList" class="hazard-list">
+            <div class="hazard-item">
+              <strong>System standby</strong>
+              Start the camera to begin obstacle monitoring and spoken feedback.
+            </div>
+          </div>
+        </section>
+
+        <section class="glass panel">
+          <h2 class="card-title">Training Hub</h2>
+          <p>
+            Upload a custom YOLOv8 <code>.pt</code> checkpoint. The backend will save
+            it and hot-reload the neural network immediately without restarting the server.
+          </p>
+          <div class="training-box">
+            <label for="modelInput">Select trained model</label>
+            <input id="modelInput" class="file-input" type="file" accept=".pt" />
+            <button id="uploadModelBtn" class="primary" style="width:100%;">Load Custom Model</button>
+            <div id="trainingLog" class="mini-log">Default model is preparing...</div>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+  <script>
+    /*
+      Browser-side system flow for the presentation:
+
+      1. Capture webcam frames with getUserMedia().
+      2. Convert selected frames into JPEG snapshots.
+      3. Send them to Flask for YOLOv8 inference.
+      4. Draw returned boxes on a transparent overlay canvas.
+      5. Speak only filtered hazards using SpeechSynthesis.
+
+      This creates a clear division of labor:
+      - Frontend handles camera, visualization, and audio.
+      - Backend handles the CNN and decision logic.
+    */
+
+    const video = document.getElementById("cameraFeed");
+    const overlayCanvas = document.getElementById("overlayCanvas");
+    const overlayCtx = overlayCanvas.getContext("2d");
+    const captureCanvas = document.createElement("canvas");
+    const captureCtx = captureCanvas.getContext("2d");
+
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const speechBtn = document.getElementById("speechBtn");
+    const uploadModelBtn = document.getElementById("uploadModelBtn");
+    const modelInput = document.getElementById("modelInput");
+    const cameraSelect = document.getElementById("cameraSelect");
+    const videoInput = document.getElementById("videoInput");
+    const playVideoBtn = document.getElementById("playVideoBtn");
+
+    const modelName = document.getElementById("modelName");
+    const backendStatus = document.getElementById("backendStatus");
+    const audioStatus = document.getElementById("audioStatus");
+    const modeLabel = document.getElementById("modeLabel");
+    const nearestHazard = document.getElementById("nearestHazard");
+    const fpsValue = document.getElementById("fpsValue");
+    const latencyValue = document.getElementById("latencyValue");
+    const detectionCount = document.getElementById("detectionCount");
+    const hazardCount = document.getElementById("hazardCount");
+    const hazardList = document.getElementById("hazardList");
+    const trainingLog = document.getElementById("trainingLog");
+
+    let mediaStream = null;
+    let inferenceLoopId = null;
+    let speechEnabled = true;
+    let isProcessingFrame = false;
+    let lastAnnouncementKey = "";
+    let lastAnnouncementTime = 0;
+    let englishVoice = null;
+    let currentVideoUrl = null;
+    let currentSourceType = "idle";
+    let speechBusy = false;
+    const alertCooldownMs = 3000;
+    const classCooldowns = {};
+
+    function hasActiveVisualSource() {
+      const hasCameraStream = Boolean(mediaStream);
+      const hasUploadedVideo =
+        currentSourceType === "video" &&
+        video.src &&
+        video.readyState >= 2 &&
+        !video.paused &&
+        !video.ended;
+
+      return hasCameraStream || hasUploadedVideo;
+    }
+
+    function directionText(direction) {
+      const map = {
+        left: "on your left",
+        right: "on your right",
+        ahead: "ahead"
+      };
+
+      return map[direction] || "ahead";
+    }
+
+    function describeObstacle(label, distance, direction) {
+      const roundedDistance = Math.round(distance * 10) / 10;
+      const where = directionText(direction);
+      const phrases = {
+        person: roundedDistance <= 1.7
+          ? `Person very close ${where}.`
+          : `Person ${where}.`,
+        car: `Car ${where}.`,
+        truck: `Truck ${where}.`,
+        bus: `Bus ${where}.`,
+        motorcycle: `Motorcycle ${where}.`,
+        bicycle: `Bicycle ${where}.`,
+        bench: `Obstacle ${where}. Bench detected.`,
+        chair: `Obstacle ${where}. Chair detected.`,
+        "dining table": `Obstacle ${where}. Table detected.`,
+        dog: `Dog ${where}.`,
+        cat: `Cat ${where}.`,
+        "traffic light": `Traffic light ${where}.`,
+        "stop sign": `Stop sign ${where}.`,
+        "potted plant": `Obstacle ${where}.`,
+        suitcase: `Obstacle ${where}.`,
+        "parking meter": `Obstacle ${where}.`,
+        "fire hydrant": `Obstacle ${where}.`
+      };
+
+      return phrases[label] || `Obstacle ${where}.`;
+    }
+
+    function selectEnglishVoice() {
+      const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+      englishVoice =
+        voices.find(voice => voice.lang === "en-US") ||
+        voices.find(voice => voice.lang && voice.lang.startsWith("en-")) ||
+        null;
+    }
+
+    async function refreshCameraList() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        trainingLog.textContent = "This browser does not support camera enumeration.";
+        return;
+      }
+
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(device => device.kind === "videoinput");
+        const previousValue = cameraSelect.value;
+
+        cameraSelect.innerHTML = `<option value="">Auto-detect camera</option>`;
+        cameras.forEach((camera, index) => {
+          const option = document.createElement("option");
+          option.value = camera.deviceId;
+          option.textContent = camera.label || `Camera ${index + 1}`;
+          cameraSelect.appendChild(option);
+        });
+
+        if ([...cameraSelect.options].some(option => option.value === previousValue)) {
+          cameraSelect.value = previousValue;
+        }
+
+        if (!cameras.length) {
+          trainingLog.textContent = "No camera source was detected by the browser.";
+        }
+      } catch (error) {
+        trainingLog.textContent = `Unable to read camera list: ${error.message}`;
+      }
+    }
+
+    async function tryGetMedia(constraintsList) {
+      let lastError = null;
+
+      for (const constraints of constraintsList) {
+        try {
+          return await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      throw lastError || new Error("No compatible camera configuration was found.");
+    }
+
+    async function fetchStatus() {
+      try {
+        const response = await fetch("/api/status");
+        const data = await response.json();
+        modelName.textContent = data.model_name || "Unavailable";
+        backendStatus.textContent = data.ready ? "Online" : "Model Missing";
+        trainingLog.textContent = data.ready
+          ? `Active model: ${data.model_name}`
+          : (data.last_error || "The backend is running but YOLO is unavailable.");
+      } catch (error) {
+        backendStatus.textContent = "Offline";
+        trainingLog.textContent = `Status check failed: ${error.message}`;
+      }
+    }
+
+    async function startCamera() {
+      if (mediaStream) return;
+
+      if (currentVideoUrl) {
+        URL.revokeObjectURL(currentVideoUrl);
+        currentVideoUrl = null;
+      }
+
+      try {
+        const selectedCameraId = cameraSelect.value;
+        const constraintsList = selectedCameraId
+          ? [
+              { video: { deviceId: { exact: selectedCameraId } }, audio: false },
+              { video: { deviceId: selectedCameraId }, audio: false }
+            ]
+          : [
+              { video: { facingMode: { ideal: "environment" } }, audio: false },
+              { video: true, audio: false }
+            ];
+
+        mediaStream = await tryGetMedia(constraintsList);
+
+        video.srcObject = mediaStream;
+        video.controls = false;
+        video.loop = false;
+        await video.play();
+        resizeOverlay();
+        modeLabel.textContent = "Live Detection Active";
+        trainingLog.textContent = "Camera connected successfully.";
+        currentSourceType = "camera";
+        await refreshCameraList();
+        startInferenceLoop();
+      } catch (error) {
+        modeLabel.textContent = "Camera Permission Needed";
+        trainingLog.textContent = `Unable to start camera: ${error.message}. Try selecting the mobile webcam manually from the list.`;
+      }
+    }
+
+    function stopCamera() {
+      if (inferenceLoopId) {
+        clearInterval(inferenceLoopId);
+        inferenceLoopId = null;
+      }
+
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+
+      if (currentVideoUrl) {
+        URL.revokeObjectURL(currentVideoUrl);
+        currentVideoUrl = null;
+      }
+
+      video.pause();
+      video.srcObject = null;
+      video.removeAttribute("src");
+      video.load();
+      video.controls = false;
+      video.loop = false;
+      overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      modeLabel.textContent = "Camera Idle";
+      nearestHazard.textContent = "None";
+      detectionCount.textContent = "0";
+      hazardCount.textContent = "0";
+      fpsValue.textContent = "0";
+      latencyValue.textContent = "0 ms";
+      currentSourceType = "idle";
+    }
+
+    async function playUploadedVideo() {
+      const file = videoInput.files[0];
+      if (!file) {
+        videoInput.click();
+        return;
+      }
+
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+
+      if (inferenceLoopId) {
+        clearInterval(inferenceLoopId);
+        inferenceLoopId = null;
+      }
+
+      if (currentVideoUrl) {
+        URL.revokeObjectURL(currentVideoUrl);
+      }
+
+      try {
+        currentVideoUrl = URL.createObjectURL(file);
+        video.srcObject = null;
+        video.src = currentVideoUrl;
+        video.controls = true;
+        video.loop = false;
+        await video.play();
+        resizeOverlay();
+        modeLabel.textContent = "Uploaded Video Analysis";
+        trainingLog.textContent = `Analyzing uploaded video: ${file.name}`;
+        currentSourceType = "video";
+        startInferenceLoop();
+      } catch (error) {
+        trainingLog.textContent = `Unable to play uploaded video: ${error.message}`;
+      }
+    }
+
+    function resizeOverlay() {
+      const rect = video.getBoundingClientRect();
+      overlayCanvas.width = rect.width;
+      overlayCanvas.height = rect.height;
+    }
+
+    function drawDetections(detections) {
+      overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+      const scaleX = overlayCanvas.width / (video.videoWidth || overlayCanvas.width);
+      const scaleY = overlayCanvas.height / (video.videoHeight || overlayCanvas.height);
+
+      detections.forEach(item => {
+        const { x, y, w, h } = item.bbox;
+        const color = item.is_hazard ? "#fb7185" : "#22c55e";
+        const label = `${item.label} | ${(item.confidence * 100).toFixed(0)}% | ${item.distance_m.toFixed(2)}m`;
+
+        overlayCtx.strokeStyle = color;
+        overlayCtx.lineWidth = item.is_hazard ? 3 : 2;
+        overlayCtx.fillStyle = "rgba(2, 6, 23, 0.78)";
+        overlayCtx.font = "600 14px Segoe UI";
+
+        overlayCtx.strokeRect(x * scaleX, y * scaleY, w * scaleX, h * scaleY);
+
+        const textWidth = overlayCtx.measureText(label).width;
+        const textX = x * scaleX;
+        const textY = Math.max(24, y * scaleY);
+        overlayCtx.fillRect(textX, textY - 22, textWidth + 14, 24);
+        overlayCtx.fillStyle = color;
+        overlayCtx.fillText(label, textX + 7, textY - 6);
+      });
+    }
+
+    function updateHazardLog(hazards) {
+      if (!hazards.length) {
+        hazardList.innerHTML = `
+          <div class="hazard-item">
+            <strong>No immediate obstacle</strong>
+            The system is active, but no object currently passes the confidence and distance hazard thresholds.
+          </div>
+        `;
+        nearestHazard.textContent = "None";
+        return;
+      }
+
+      nearestHazard.textContent = `${hazards[0].label} ${directionText(hazards[0].direction)} | ${hazards[0].distance_m.toFixed(2)} m`;
+      hazardList.innerHTML = hazards.slice(0, 8).map(item => `
+        <div class="hazard-item">
+          <strong>${item.label.toUpperCase()} | ${directionText(item.direction)} | ${item.distance_m.toFixed(2)} m</strong>
+          Confidence ${(item.confidence * 100).toFixed(0)}% - Navigation warning active
+        </div>
+      `).join("");
+    }
+
+    function speakHazards(hazards) {
+      if (!speechEnabled || !hazards.length) return;
+      if (speechBusy || speechSynthesis.speaking) return;
+
+      const primary = hazards[0];
+      const now = Date.now();
+      const cooldownKey = primary.label;
+      const lastClassAnnouncement = classCooldowns[cooldownKey] || 0;
+
+      /*
+        Cooldown logic:
+        - The same detected class can only trigger speech once every 3 seconds.
+        - This prevents repeated audio stutter such as "Per-Per-Person".
+        - We also block playback while another utterance is still speaking.
+      */
+      if (now - lastClassAnnouncement < alertCooldownMs) {
+        return;
+      }
+
+      const spokenText = describeObstacle(primary.label, primary.distance_m, primary.direction);
+      const utterance = new SpeechSynthesisUtterance(spokenText);
+      utterance.lang = "en-US";
+      if (!englishVoice) {
+        selectEnglishVoice();
+      }
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      utterance.onstart = () => {
+        speechBusy = true;
+      };
+      utterance.onend = () => {
+        speechBusy = false;
+      };
+      utterance.onerror = () => {
+        speechBusy = false;
+      };
+      classCooldowns[cooldownKey] = now;
+      speechSynthesis.speak(utterance);
+    }
+
+    async function sendFrameForDetection() {
+      if (!hasActiveVisualSource() || isProcessingFrame || video.readyState < 2) return;
+
+      isProcessingFrame = true;
+
+      try {
+        captureCanvas.width = video.videoWidth;
+        captureCanvas.height = video.videoHeight;
+        captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+        const frameData = captureCanvas.toDataURL("image/jpeg", 0.72);
+
+        const response = await fetch("/api/detect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ frame: frameData })
+        });
+
+        const data = await response.json();
+        if (data.status !== "success") {
+          throw new Error(data.message || "Detection failed.");
+        }
+
+        modelName.textContent = data.model_name || "Unknown";
+        fpsValue.textContent = Number(data.fps || 0).toFixed(1);
+        latencyValue.textContent = `${Number(data.latency_ms || 0).toFixed(0)} ms`;
+        detectionCount.textContent = `${data.detections.length}`;
+        hazardCount.textContent = `${data.hazards.length}`;
+        trainingLog.textContent = `Inference active | Detections: ${data.detections.length} | Hazards: ${data.hazards.length} | Model: ${data.model_name}`;
+
+        drawDetections(data.detections);
+        updateHazardLog(data.hazards);
+        speakHazards(data.hazards);
+      } catch (error) {
+        trainingLog.textContent = `Detection error: ${error.message}`;
+      } finally {
+        isProcessingFrame = false;
+      }
+    }
+
+    function startInferenceLoop() {
+      if (inferenceLoopId) clearInterval(inferenceLoopId);
+
+      /*
+        Controlled snapshot polling is easier to defend academically than a
+        full streaming pipeline while still showing real-time AI behavior.
+      */
+      inferenceLoopId = setInterval(sendFrameForDetection, 450);
+    }
+
+    async function uploadCustomModel() {
+      const file = modelInput.files[0];
+      if (!file) {
+        trainingLog.textContent = "Please choose a .pt model file first.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("model", file);
+      trainingLog.textContent = `Uploading ${file.name} and reloading model...`;
+
+      try {
+        const response = await fetch("/api/load-model", {
+          method: "POST",
+          body: formData
+        });
+        const data = await response.json();
+
+        if (data.status !== "success") {
+          throw new Error(data.message || "Model reload failed.");
+        }
+
+        modelName.textContent = data.model_name;
+        backendStatus.textContent = "Online";
+        trainingLog.textContent = `Model loaded: ${data.model_name} | Saved at ${data.saved_path}`;
+      } catch (error) {
+        trainingLog.textContent = `Training Hub error: ${error.message}`;
+      }
+    }
+
+    function toggleSpeech() {
+      speechEnabled = !speechEnabled;
+      audioStatus.textContent = speechEnabled ? "Ready" : "Muted";
+      speechBtn.textContent = speechEnabled ? "MUTE SPOKEN ALERT" : "ENABLE SPOKEN ALERT";
+      if (!speechEnabled) {
+        speechBusy = false;
+        speechSynthesis.cancel();
+      }
+    }
+
+    startBtn.addEventListener("click", startCamera);
+    playVideoBtn.addEventListener("click", playUploadedVideo);
+    stopBtn.addEventListener("click", stopCamera);
+    speechBtn.addEventListener("click", toggleSpeech);
+    uploadModelBtn.addEventListener("click", uploadCustomModel);
+    videoInput.addEventListener("change", () => {
+      if (videoInput.files && videoInput.files[0]) {
+        playUploadedVideo();
+      }
+    });
+    window.addEventListener("resize", resizeOverlay);
+    navigator.mediaDevices?.addEventListener?.("devicechange", refreshCameraList);
+    video.addEventListener("ended", () => {
+      if (currentSourceType === "video" && inferenceLoopId) {
+        clearInterval(inferenceLoopId);
+        inferenceLoopId = null;
+        modeLabel.textContent = "Video Completed";
+      }
+    });
+    if (window.speechSynthesis) {
+      speechSynthesis.onvoiceschanged = selectEnglishVoice;
+      selectEnglishVoice();
+    }
+
+    fetchStatus();
+    refreshCameraList();
+    setInterval(fetchStatus, 12000);
+  </script>
+</body>
+</html>
